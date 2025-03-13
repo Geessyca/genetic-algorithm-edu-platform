@@ -140,6 +140,11 @@ function geneticAlgorithm({ precisionRateValue,mutationRate, corDeParada, geraco
        
         let newPopulation = [];
         for (let i = 0; i < populacaoInicial / 2; i++) {
+            let runButton = document.getElementById("run");
+            let simuButton = document.getElementById("simu");
+        
+            runButton.style.display = "none"
+            simuButton.style.display = "flex"
             let parent1 = select(population, corDeParada, metodoSelecao);
             let parent2 = select(population, corDeParada, metodoSelecao);
             let [child1, child2] = crossover(parent1, parent2);
@@ -164,6 +169,7 @@ function geneticAlgorithm({ precisionRateValue,mutationRate, corDeParada, geraco
 
         if (fitness_pop >= precisionRateValue/100) {
             finish.innerHTML = `Finalizado na geração: <b>${generation}</b>`;
+            
             return;
         }
 
@@ -172,6 +178,8 @@ function geneticAlgorithm({ precisionRateValue,mutationRate, corDeParada, geraco
         requestAnimationFrame(step);
     }
     step();
+
+
 }
 
 function clickExecution() {
@@ -221,10 +229,11 @@ document.addEventListener("DOMContentLoaded", function () {
     let runButton = document.getElementById("run");
     if (runButton) {
         runButton.addEventListener("click", function () {
-            runButton.style.display = "flex"
-            clickExecution()
-            simuButton.style.display = "none"
+            runButton.style.display = "none"
+            simuButton.style.display = "flex"
             estaButton.style.display = "flex"
+            clickExecution()
+            
         });
     }
     if (simuButton) {
