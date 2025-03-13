@@ -31,6 +31,9 @@ function openModal(id) {
     document.getElementById("mutationRate").addEventListener("input", function () {
         document.getElementById("mutationRateValue").textContent = this.value + "%";
     });
+    document.getElementById("precisionRate").addEventListener("input", function () {
+        document.getElementById("precisionRateValue").textContent = this.value + "%";
+    });
     document.querySelectorAll('input[name="stopCriteria"]').forEach((input) => {
         input.addEventListener('change', function () {
             if (this.value === 'color') {
@@ -100,5 +103,50 @@ function applySettings() {
 
     closeModal("configModal");
 }
+
+
+
+document.addEventListener("DOMContentLoaded", function () {
+    salvarNoLocalStorage("Taxa_Mutacao", 30);
+    salvarNoLocalStorage("Taxa_Precisao", 80);
+    salvarNoLocalStorage("Populacao_Inicial", 50);
+    salvarNoLocalStorage("Selecao", "roleta");
+    salvarNoLocalStorage("Criterio_Parada", "random");
+    let runButton = document.getElementById("run");
+    let simuButton = document.getElementById("simu");
+    let estaButton = document.getElementById("esta");
+    let lakeContainer = document.getElementById("lake-container");
+    let estaContainer = document.getElementById("esta-container");
+    
+    if (runButton) {
+        runButton.addEventListener("click", function () {
+            runButton.style.display = "none"
+            simuButton.style.display = "flex"
+            estaButton.style.display = "flex"
+            clickExecution()
+            
+        });
+    }
+    if (simuButton) {
+        simuButton.addEventListener("click", function () {
+            runButton.style.display = "flex"
+            simuButton.style.display = "none"
+            estaButton.style.display = "flex"
+            lakeContainer.style.display = "flex"
+            estaContainer.style.display = "none"
+        });
+    }
+    if (estaButton) {
+        estaButton.addEventListener("click", function () {
+            runButton.style.display = "none"
+            simuButton.style.display = "flex"
+            estaButton.style.display = "flex"
+            lakeContainer.style.display = "none"
+            estaContainer.style.display = "flex"
+        });
+    }
+
+
+});
 
 

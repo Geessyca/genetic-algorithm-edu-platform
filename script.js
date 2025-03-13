@@ -106,7 +106,7 @@ function adicionarCirculoDeCor(generation, media) {
     colorList.appendChild(circle);
 }
 
-function atualizarEstatisticas(population, corDeParada, generation, melhorFitness) {
+function atualizarEstatisticas(population, generation, melhorFitness) {
     let media = calcularMedia(population);
 
     // Atualizar gráfico de fitness
@@ -139,6 +139,7 @@ function geneticAlgorithm({ precisionRateValue,mutationRate, corDeParada, geraco
         finish.innerHTML = `Geração atual: <b>${generation}</b>`
        
         let newPopulation = [];
+        
         for (let i = 0; i < populacaoInicial / 2; i++) {
             let runButton = document.getElementById("run");
             let simuButton = document.getElementById("simu");
@@ -160,7 +161,7 @@ function geneticAlgorithm({ precisionRateValue,mutationRate, corDeParada, geraco
 
 
         updateUI(population);
-        atualizarEstatisticas(population, corDeParada, generation, fitnessPercentual);
+        atualizarEstatisticas(population,  generation, fitnessPercentual);
          
         if (generation >= geracoesMax+1 && repetirAte == "generations") {
             finish.innerHTML = `Finalizado na geração: <b>${generation}</b>`;
@@ -206,54 +207,11 @@ function clickExecution() {
     colorList.innerHTML = "";
     finish.innerHTML = "";
     color.innerHTML = "";    
-    fitness_text.innerHTML = "";
-    fitnessChart.data.datasets.data=[]
-    
-    fitness_chart.innerHTML = "";
-
+    fitnessChart.data.labels = []; // Limpa os rótulos
+        fitnessChart.data.datasets.forEach((dataset) => {
+            dataset.data = []; // Limpa os dados
+        });
+        fitnessChart.update(); // Atualiza o gráfico
     geneticAlgorithm({ precisionRateValue,mutationRate, corDeParada, geracoesMax, populacaoInicial, repetirAte, metodoSelecao });
 }
 
-
-document.addEventListener("DOMContentLoaded", function () {
-    salvarNoLocalStorage("Taxa_Mutacao", 30);
-    salvarNoLocalStorage("Taxa_Precisao", 80);
-    salvarNoLocalStorage("Populacao_Inicial", 50);
-    salvarNoLocalStorage("Selecao", "roleta");
-    salvarNoLocalStorage("Criterio_Parada", "random");
-
-    let simuButton = document.getElementById("simu");
-    let estaButton = document.getElementById("esta");
-    let lakeContainer = document.getElementById("lake-container");
-    let estaContainer = document.getElementById("esta-container");
-    let runButton = document.getElementById("run");
-    if (runButton) {
-        runButton.addEventListener("click", function () {
-            runButton.style.display = "none"
-            simuButton.style.display = "flex"
-            estaButton.style.display = "flex"
-            clickExecution()
-            
-        });
-    }
-    if (simuButton) {
-        simuButton.addEventListener("click", function () {
-            runButton.style.display = "flex"
-            simuButton.style.display = "none"
-            estaButton.style.display = "flex"
-            lakeContainer.style.display = "flex"
-            estaContainer.style.display = "none"
-        });
-    }
-    if (estaButton) {
-        estaButton.addEventListener("click", function () {
-            runButton.style.display = "none"
-            simuButton.style.display = "flex"
-            estaButton.style.display = "flex"
-            lakeContainer.style.display = "none"
-            estaContainer.style.display = "flex"
-        });
-    }
-
-
-});
