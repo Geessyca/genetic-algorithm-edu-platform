@@ -1,13 +1,9 @@
-function salvarNoLocalStorage(chave, valor) {
-    localStorage.setItem(chave, valor);
-}
-
 const fishContainer = document.getElementById("fish-container");
-
-function hexToRgb(hex) {
-    let bigint = parseInt(hex.slice(1), 16);
-    return [(bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255];
-}
+const colorList = document.getElementById("color-list"); 
+const finish = document.getElementById("finish");
+const color = document.getElementById("color");
+const fitness_chart = document.getElementById("fitness-chart")
+const fitness_text = document.getElementById("fitness")
 
 function randomColor() {
     return [Math.floor(Math.random() * 256), Math.floor(Math.random() * 256), Math.floor(Math.random() * 256)];
@@ -26,7 +22,7 @@ function select(population, target, method) {
         let ind1 = population[Math.floor(Math.random() * population.length)];
         let ind2 = population[Math.floor(Math.random() * population.length)];
         return fitness(ind1, target) > fitness(ind2, target) ? ind1 : ind2;
-    } else { 
+    } else if (method === "roleta") {
         let totalFitness = population.reduce((sum, ind) => sum + fitness(ind, target), 0);
         let pick = Math.random() * totalFitness;
         let cumulative = 0;
@@ -35,6 +31,7 @@ function select(population, target, method) {
             if (cumulative >= pick) return ind;
         }
     }
+    return select(population, target, Math.random() < 0.5 ? "torneio" : "roleta");
 }
 
 function crossover(parent1, parent2) {
@@ -45,8 +42,8 @@ function crossover(parent1, parent2) {
     ];
 }
 
-function mutate(ind) {
-    if (Math.random() < 0.1) { 
+function mutate(ind, mutationRate) {
+    if (Math.random() < mutationRate / 100) {
         let index = Math.floor(Math.random() * 3);
         ind[index] = Math.min(255, Math.max(0, ind[index] + (Math.random() * 50 - 25)));
     }
@@ -68,72 +65,186 @@ function updateUI(population) {
     });
 }
 
-function geneticAlgorithm({ corDeParada, geracoesMax, populacaoInicial, repetirAte, metodoSelecao }) {
-    let target = hexToRgb(corDeParada);
+function calcularMedia(population) {
+    let soma = [0, 0, 0];
+    population.forEach(ind => {
+        soma[0] += ind[0];
+        soma[1] += ind[1];
+        soma[2] += ind[2];
+    });
+    return soma.map(val => Math.round(val / population.length));
+}
+
+// Criar gráfico de fitness
+let ctxFitness = fitness_chart.getContext("2d");
+let fitnessChart = new Chart(ctxFitness, {
+    type: "line",
+    data: {
+        labels: [],
+        datasets: [{
+            label: "Melhor Aptidão",
+            data: [],
+            borderColor: "#025310 ",
+            borderWidth: 2,
+            fill: false
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            x: { title: { display: true, text: "Geração" } },
+            y: { title: { display: true, text: "Aptidão (%)" }, min: 0, max: 100 }
+        }
+    }
+});
+
+function adicionarCirculoDeCor(generation, media) {
+    let circle = document.createElement("div");
+    circle.className = "color-circle";
+    circle.style.backgroundColor = `rgb(${media[0]},${media[1]},${media[2]})`;
+    circle.title = `Geração ${generation}: rgb(${media[0]}, ${media[1]}, ${media[2]})`;
+    colorList.appendChild(circle);
+}
+
+function atualizarEstatisticas(population, corDeParada, generation, melhorFitness) {
+    let media = calcularMedia(population);
+
+    // Atualizar gráfico de fitness
+    fitnessChart.data.labels.push(generation);
+    fitnessChart.data.datasets[0].data.push(melhorFitness);
+    fitnessChart.update();
+
+    // Adicionar círculo de cor a cada 5 gerações
+    if (generation % 5 === 0) {
+        adicionarCirculoDeCor(generation, media);
+    }
+}
+
+function geneticAlgorithm({ precisionRateValue,mutationRate, corDeParada, geracoesMax, populacaoInicial, repetirAte, metodoSelecao }) {
+    let circle = document.createElement("div");
+    circle.className = "color-circle";
+    circle.style.backgroundColor = `rgb(${corDeParada[0]},${corDeParada[1]},${corDeParada[2]})`;
+    circle.title = `Coloração a ser alcançada: rgb(${corDeParada[0]}, ${corDeParada[1]}, ${corDeParada[2]})`;
+    color.innerText="Coloração a ser alcançada:"
+    color.appendChild(circle);
+
+    fitness_text.innerText=`Taxa de aptidão alcançada: <b>${0}%</b>/${precisionRateValue}%`
+
     let population = Array.from({ length: populacaoInicial }, randomColor);
-    let generation = 0;
+    let generation = 1;
 
     function step() {
-        population = population.sort((a, b) => fitness(b, target) - fitness(a, target));
-        if (generation >= geracoesMax && repetirAte == "Geracao") {
-            alert(`Finalizado na geração ${generation}`);
-            return;
-        }
-
+        population = population.sort((a, b) => fitness(b, corDeParada) - fitness(a, corDeParada));
+        
+        finish.innerHTML = `Geração atual: <b>${generation}</b>`
+       
         let newPopulation = [];
         for (let i = 0; i < populacaoInicial / 2; i++) {
-            let parent1 = select(population, target, metodoSelecao);
-            let parent2 = select(population, target, metodoSelecao);
+            let parent1 = select(population, corDeParada, metodoSelecao);
+            let parent2 = select(population, corDeParada, metodoSelecao);
             let [child1, child2] = crossover(parent1, parent2);
-            newPopulation.push(mutate(child1), mutate(child2));
+
+            newPopulation.push(mutate(child1, mutationRate), mutate(child2, mutationRate));
         }
 
         population = newPopulation;
-        console.log(fitness(population[0], target))
+        fitness_pop = fitness(population[0], corDeParada);
+        let fitnessPercentual = parseFloat((fitness_pop * 100).toFixed(1));
+
+        fitness_text.innerHTML=`Taxa de aptidão alcançada: <b>${fitnessPercentual}%</b>/${precisionRateValue}%`
+
 
         updateUI(population);
-        generation++;
-
-        
-        if (fitness(population[0], target) >= 0.60) {
-            alert(`Finalizado na geração ${generation}`);
+        atualizarEstatisticas(population, corDeParada, generation, fitnessPercentual);
+         
+        if (generation >= geracoesMax+1 && repetirAte == "generations") {
+            finish.innerHTML = `Finalizado na geração: <b>${generation}</b>`;
             return;
         }
+
+        if (fitness_pop >= precisionRateValue/100) {
+            finish.innerHTML = `Finalizado na geração: <b>${generation}</b>`;
+            return;
+        }
+
+        generation++;
 
         requestAnimationFrame(step);
     }
     step();
 }
 
+function clickExecution() {
+    let precisionRateValue = localStorage.getItem("Taxa_Precisao") || 50;
+    let mutationRate = localStorage.getItem("Taxa_Mutacao") || 50;
+    let corDeParada =  localStorage.getItem("Cor_Parada");
+    let geracoesMax = parseInt(localStorage.getItem("Geracao"));
+    let populacaoInicial = parseInt(localStorage.getItem("Populacao_Inicial")) || 10;
+    let repetirAte = localStorage.getItem("Criterio_Parada") || "random";
+    let metodoSelecao = localStorage.getItem("Selecao") || "torneio";
+    if (repetirAte == "generations") {
+        corDeParada = [212, 146, 221]
+    }
+    else if (repetirAte == "color") {
+        corDeParada = corDeParada.split(",").map(Number);
+    }
+    else {
+        const r = Math.floor(Math.random() * 256);
+        const g = Math.floor(Math.random() * 256);
+        const b = Math.floor(Math.random() * 256);
+        corDeParada = [r, g, b]
+    }
+    fishContainer.innerHTML = "";
+    colorList.innerHTML = "";
+    finish.innerHTML = "";
+    color.innerHTML = "";    
+    fitness_text.innerHTML = "";
+    fitnessChart.data.datasets.data=[]
+    
+    fitness_chart.innerHTML = "";
+
+    geneticAlgorithm({ precisionRateValue,mutationRate, corDeParada, geracoesMax, populacaoInicial, repetirAte, metodoSelecao });
+}
+
 
 document.addEventListener("DOMContentLoaded", function () {
+    salvarNoLocalStorage("Taxa_Mutacao", 30);
+    salvarNoLocalStorage("Taxa_Precisao", 80);
+    salvarNoLocalStorage("Populacao_Inicial", 50);
+    salvarNoLocalStorage("Selecao", "roleta");
+    salvarNoLocalStorage("Criterio_Parada", "random");
+
+    let simuButton = document.getElementById("simu");
+    let estaButton = document.getElementById("esta");
+    let lakeContainer = document.getElementById("lake-container");
+    let estaContainer = document.getElementById("esta-container");
     let runButton = document.getElementById("run");
     if (runButton) {
         runButton.addEventListener("click", function () {
-            const ordem = verificarOrdem(workspace);
-
-            if (ordem) {
-                
-                let corDeParada = localStorage.getItem("Criterio_Parada");
-                let geracoesMax = parseInt(localStorage.getItem("Geracao")) ;
-                let populacaoInicial = parseInt(localStorage.getItem("Populacao_Inicial")) || 10;
-                let repetirAte = localStorage.getItem("Repetir_Ate") || "Criterio_Parada";
-                let metodoSelecao = localStorage.getItem("Selecao") || "torneio";
-                if (repetirAte == "Geracao"){
-                    corDeParada = "#ffffff"
-                }
-                if (repetirAte == "Criterio_Parada"){
-                    geracoesMax = 2000
-                }
-                geneticAlgorithm({ corDeParada, geracoesMax, populacaoInicial, repetirAte, metodoSelecao })
-                localStorage.removeItem("Criterio_Parada")
-                localStorage.removeItem("Geracao")
-                localStorage.removeItem("Populacao_Inicial")
-                localStorage.removeItem("Repetir_Ate")
-                localStorage.removeItem("Selecao")
-            }
+            runButton.style.display = "flex"
+            clickExecution()
+            simuButton.style.display = "none"
+            estaButton.style.display = "flex"
         });
-    } else {
-        console.error("Elemento com id 'run' não encontrado.");
     }
+    if (simuButton) {
+        simuButton.addEventListener("click", function () {
+            runButton.style.display = "flex"
+            simuButton.style.display = "none"
+            estaButton.style.display = "flex"
+            lakeContainer.style.display = "flex"
+            estaContainer.style.display = "none"
+        });
+    }
+    if (estaButton) {
+        estaButton.addEventListener("click", function () {
+            runButton.style.display = "none"
+            simuButton.style.display = "flex"
+            estaButton.style.display = "flex"
+            lakeContainer.style.display = "none"
+            estaContainer.style.display = "flex"
+        });
+    }
+
+
 });
