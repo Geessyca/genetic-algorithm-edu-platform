@@ -1,90 +1,253 @@
+
 const fishContainer = document.getElementById("fish-container");
-const colorList = document.getElementById("color-list"); 
-const finish = document.getElementById("finish");
-const color = document.getElementById("color");
-const fitness_chart = document.getElementById("fitness-chart")
-const fitness_text = document.getElementById("fitness")
+const generationLabel = document.getElementById("generation_current");
+const fitnessChartCanvas = document.getElementById("fitness_current-chart");
+const fitnessStatus = document.getElementById("fitness_current");
 
-function randomColor() {
-    return [Math.floor(Math.random() * 256), Math.floor(Math.random() * 256), Math.floor(Math.random() * 256)];
-}
+let fishIdCounter = 0;
 
-function fitness(ind, target) {
-    return 1 / (1 + Math.sqrt(
-        (ind[0] - target[0]) ** 2 +
-        (ind[1] - target[1]) ** 2 +
-        (ind[2] - target[2]) ** 2
-    ));
-}
 
-function select(population, target, method) {
-    if (method === "torneio") {
-        let ind1 = population[Math.floor(Math.random() * population.length)];
-        let ind2 = population[Math.floor(Math.random() * population.length)];
-        return fitness(ind1, target) > fitness(ind2, target) ? ind1 : ind2;
-    } else if (method === "roleta") {
-        let totalFitness = population.reduce((sum, ind) => sum + fitness(ind, target), 0);
-        let pick = Math.random() * totalFitness;
-        let cumulative = 0;
-        for (let ind of population) {
-            cumulative += fitness(ind, target);
-            if (cumulative >= pick) return ind;
-        }
-    }
-    return select(population, target, Math.random() < 0.5 ? "torneio" : "roleta");
-}
-
-function crossover(parent1, parent2) {
-    let point = Math.floor(Math.random() * 3);
+function generateRandomColor() {
     return [
-        [...parent1.slice(0, point), ...parent2.slice(point)],
-        [...parent2.slice(0, point), ...parent1.slice(point)]
+        Math.floor(Math.random() * 256),
+        Math.floor(Math.random() * 256),
+        Math.floor(Math.random() * 256)
     ];
 }
 
-function mutate(ind, mutationRate) {
-    if (Math.random() < mutationRate / 100) {
-        let index = Math.floor(Math.random() * 3);
-        ind[index] = Math.min(255, Math.max(0, ind[index] + (Math.random() * 50 - 25)));
+function calculateFitness(individual, targetColor) {
+    const weightR = 0.3, weightG = 0.59, weightB = 0.11;
+    const distance = Math.sqrt(
+        weightR * (individual[0] - targetColor[0]) ** 2 +
+        weightG * (individual[1] - targetColor[1]) ** 2 +
+        weightB * (individual[2] - targetColor[2]) ** 2
+    );
+
+    return 1 / (1 + distance / 30);
+}
+
+function tournamentSelectionUnique(population, targetColor, numSelected) {
+    const selected = [];
+    const selectedIds = [];
+
+    while (selected.length < numSelected) {
+        const a = population[Math.floor(Math.random() * population.length)];
+        const b = population[Math.floor(Math.random() * population.length)];
+
+        const winner = calculateFitness(a.color, targetColor) > calculateFitness(b.color, targetColor) ? a : b;
+
+        if (!selected.includes(winner)) {
+            selected.push(winner);
+            selectedIds.push(winner.id)
+        }
     }
-    return ind;
+
+    return [selected, selectedIds];
 }
 
-function updateUI(population) {
-    fishContainer.innerHTML = "";
-    population.forEach(ind => {
-        let fish = document.createElement("div");
-        fish.className = "fish";
-        fish.style.backgroundColor = `rgb(${ind[0]},${ind[1]},${ind[2]})`;
-        fish.style.left = Math.random() * 100 + "%";
-        fish.style.top = Math.random() * 100 + "%";
-        let tail = document.createElement("span");
-        tail.className = "tail";
-        fish.appendChild(tail);
-        fishContainer.appendChild(fish);
-    });
+function rouletteSelectionUnique(population, targetColor, numSelected) {
+    const selected = [];
+    const selectedIds = [];
+
+    while (selected.length < numSelected) {
+        const totalFitness = population.reduce(
+            (sum, ind) => sum + calculateFitness(ind.color, targetColor), 0
+        );
+
+        const threshold = Math.random() * totalFitness;
+        let cumulative = 0;
+
+        for (const individual of population) {
+            cumulative += calculateFitness(individual.color, targetColor);
+            if (cumulative >= threshold) {
+                const alreadySelected = selected.some(sel => JSON.stringify(sel) === JSON.stringify(individual));
+                if (!alreadySelected) {
+                    selected.push(individual);
+                    selectedIds.push(individual.id)
+                }
+                break;
+            }
+        }
+    }
+
+    return [selected, selectedIds];
 }
 
-function calcularMedia(population) {
-    let soma = [0, 0, 0];
-    population.forEach(ind => {
-        soma[0] += ind[0];
-        soma[1] += ind[1];
-        soma[2] += ind[2];
-    });
-    return soma.map(val => Math.round(val / population.length));
+async function rouletteSelectionUniqueAnimate(population, targetColor, numSelected) {
+    const canvas = document.getElementById('rouletteCanvas');
+    const ctx = canvas.getContext('2d');
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = 150;
+
+    const selected = [];
+    const selectedIds = [];
+    let isSelecting = true;
+
+    const fitnesses = population.map(ind => calculateFitness(ind.color, targetColor));
+    const totalFitness = fitnesses.reduce((a, b) => a + b, 0);
+    const angles = fitnesses.map(fit => (fit / totalFitness) * 2 * Math.PI);
+
+    let rotation = 0;
+
+    function drawRoulette() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let startAngle = rotation;
+
+        for (let i = 0; i < population.length; i++) {
+            const individual = population[i];
+            const angle = angles[i];
+            const fitness = fitnesses[i];
+            const endAngle = startAngle + angle;
+
+            
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+            ctx.closePath();
+            ctx.fillStyle = `rgb(${individual.color[0]},${individual.color[1]},${individual.color[2]})`;
+            ctx.fill();
+
+            
+            if (selectedIds.includes(individual.id)) {
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = "#156b23";
+                ctx.stroke();
+            }
+
+            
+            const middleAngle = startAngle + angle / 2;
+            const textX = centerX + (radius * 0.6) * Math.cos(middleAngle);
+            const textY = centerY + (radius * 0.6) * Math.sin(middleAngle);
+
+            ctx.fillStyle = "#fff";
+            ctx.font = "16px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.save();
+            ctx.translate(textX, textY);
+            ctx.rotate(middleAngle);
+            ctx.fillText(fitness.toFixed(1), 0, 0);
+            ctx.restore();
+
+            startAngle = endAngle;
+        }
+
+        
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY - radius - 10);
+        ctx.lineTo(centerX - 10, centerY - radius - 30);
+        ctx.lineTo(centerX + 10, centerY - radius - 30);
+        ctx.closePath();
+        ctx.fillStyle = "#FF0000";
+        ctx.fill();
+    }
+
+    function spinAndSelect() {
+        if (selected.length >= numSelected) return false;
+
+        const pointerAngle = (2 * Math.PI + (-Math.PI / 2 - rotation)) % (2 * Math.PI);
+
+        let startAngle = 0;
+        for (let i = 0; i < population.length; i++) {
+            const endAngle = startAngle + angles[i];
+            if (pointerAngle >= startAngle && pointerAngle < endAngle) {
+                const ind = population[i];
+                if (!selectedIds.includes(ind.id)) {
+                    selected.push(ind);
+                    selectedIds.push(ind.id);
+                    return true;
+                }
+                break;
+            }
+            startAngle = endAngle;
+        }
+
+        return false;
+    }
+
+    function animate() {
+        if (isSelecting) {
+            rotation += 0.05; 
+            if (rotation >= 2 * Math.PI) rotation = 0;
+        }
+        drawRoulette();
+        requestAnimationFrame(animate);
+    }
+
+    function selectAllWithDelay() {
+        return new Promise(resolve => {
+            function trySelect() {
+                if (selected.length >= numSelected) {
+                    isSelecting = false;
+                    resolve(); 
+                    return;
+                }
+
+                const gotNew = spinAndSelect();
+                setTimeout(trySelect, gotNew ? 600 : 30); 
+            }
+
+            trySelect();
+        });
+    }
+
+    animate();
+    await selectAllWithDelay();
+
+    return [selected, selectedIds];
+}
+async function selectParentAnimate(population, targetColor, selectionMethod) {
+    const numSelected = population.length / 2
+    if (selectionMethod === "torneio") {
+        return tournamentSelectionUnique(population, targetColor, numSelected)
+    } else if (selectionMethod === "roleta") {
+        return await rouletteSelectionUniqueAnimate(population, targetColor, numSelected)
+    }
+    return selectParent(population, targetColor, Math.random() < 0.5 ? "torneio" : "roleta");
 }
 
-// Criar gráfico de fitness
-let ctxFitness = fitness_chart.getContext("2d");
-let fitnessChart = new Chart(ctxFitness, {
+
+function selectParent(population, targetColor, selectionMethod) {
+    const numSelected = population.length / 2
+    if (selectionMethod === "torneio") {
+        return tournamentSelectionUnique(population, targetColor, numSelected)
+    } else if (selectionMethod === "roleta") {
+        return rouletteSelectionUnique(population, targetColor, numSelected)
+    }
+    return selectParent(population, targetColor, Math.random() < 0.5 ? "torneio" : "roleta");
+}
+
+function crossoverColors(parent1, parent2) {
+    const crossoverPoint = Math.floor(Math.random() * 3);
+    return [
+        { id: fishIdCounter++, color: [...parent1.color.slice(0, crossoverPoint), ...parent2.color.slice(crossoverPoint)] },
+        { id: fishIdCounter++, color: [...parent2.color.slice(0, crossoverPoint), ...parent1.color.slice(crossoverPoint)] }
+    ];
+}
+
+function mutateColor(individual, mutationRate) {
+    if (Math.random() < mutationRate / 100) {
+        const channelIndex = Math.floor(Math.random() * 3);
+        individual.color[channelIndex] = Math.min(255, Math.max(0, individual.color[channelIndex] + (Math.random() * 50 - 25)));
+    }
+    return individual;
+}
+
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+
+const ctx = fitnessChartCanvas.getContext("2d");
+const fitnessChart = new Chart(ctx, {
     type: "line",
     data: {
         labels: [],
         datasets: [{
             label: "Melhor Aptidão",
             data: [],
-            borderColor: "#025310 ",
+            borderColor: "#025310",
             borderWidth: 2,
             fill: false
         }]
@@ -98,120 +261,172 @@ let fitnessChart = new Chart(ctxFitness, {
     }
 });
 
-function adicionarCirculoDeCor(generation, media) {
-    let circle = document.createElement("div");
-    circle.className = "color-circle";
-    circle.style.backgroundColor = `rgb(${media[0]},${media[1]},${media[2]})`;
-    circle.title = `Geração ${generation}: rgb(${media[0]}, ${media[1]}, ${media[2]})`;
-    colorList.appendChild(circle);
+
+function atualizarEstatisticasGeracao(generation, melhorFitnessPercentual) {
+    fitnessChart.data.labels.push(generation);
+    fitnessChart.data.datasets[0].data.push(melhorFitnessPercentual);
+    fitnessChart.update();
 }
 
-function atualizarEstatisticas(population, generation, melhorFitness) {
-    let media = calcularMedia(population);
+const birdFlightDelay = 500;
+const fishRemovalDelay = 1000;
 
-    // Atualizar gráfico de fitness
-    fitnessChart.data.labels.push(generation);
-    fitnessChart.data.datasets[0].data.push(melhorFitness);
-    fitnessChart.update();
+async function atualizarInterface(population, selectedIds, generation) {
+    fishContainer.innerHTML = '<img id="bird" src="bird.gif"/>';
 
-    // Adicionar círculo de cor a cada 5 gerações
-    if (generation % 5 === 0) {
-        adicionarCirculoDeCor(generation, media);
+    population.forEach(individual => {
+        const fish = document.createElement("div");
+        fish.className = "fish";
+        fish.style.backgroundColor = `rgb(${individual.color[0]},${individual.color[1]},${individual.color[2]})`;
+        fish.style.left = Math.random() * 100 + "%";
+        fish.style.top = `calc(${10 + Math.random() * 70}% + 20px)`;
+        fish.dataset.id = individual.id;
+        fish.id = individual.id;
+
+        const tail = document.createElement("span");
+        tail.className = "tail";
+        fish.appendChild(tail);
+        fishContainer.appendChild(fish);
+    });
+
+    async function birdHuntsFish(index = 0) {
+        if (index >= population.length || population.length === 0) return;
+        const id = population[index].id
+        const fish = document.getElementById(id);
+
+        if (fish && !selectedIds.includes(id)) {
+            const bird = document.getElementById("bird");
+            bird.style.opacity = "1";
+            bird.style.transition = "left 0.5s ease-in-out, top 0.5s ease-in-out";
+            bird.style.left = `calc(${fish.style.left} - 30px)`;
+            bird.style.top = `calc(${fish.style.top} - 50px)`;
+
+            await delay(birdFlightDelay);
+
+            fish.style.transition = "transform 0.1s ease-out, opacity 0.1s ease-out";
+            fish.style.opacity = "0";
+
+            await delay(fishRemovalDelay);
+            fish.remove();
+        }
+
+        await birdHuntsFish(index + 1);
+    }
+
+    if (generation <= 5) {
+        await birdHuntsFish();
     }
 }
 
-function geneticAlgorithm({ precisionRateValue,mutationRate, corDeParada, geracoesMax, populacaoInicial, repetirAte, metodoSelecao }) {
-    let circle = document.createElement("div");
-    circle.className = "color-circle";
-    circle.style.backgroundColor = `rgb(${corDeParada[0]},${corDeParada[1]},${corDeParada[2]})`;
-    circle.title = `Coloração a ser alcançada: rgb(${corDeParada[0]}, ${corDeParada[1]}, ${corDeParada[2]})`;
-    color.innerText="Coloração a ser alcançada:"
-    color.appendChild(circle);
+function getRandomIndex(max) {
+    return Math.floor(Math.random() * max);
+}
 
-    fitness_text.innerText=`Taxa de aptidão alcançada: <b>${0}%</b>/${precisionRateValue}%`
+function animationReset() {
+    const sun = document.querySelector('.sun');
+    const sunReflection = document.querySelector('.sun-container-reflection .sun');
+    const light = document.querySelector('.light');
 
-    let population = Array.from({ length: populacaoInicial }, randomColor);
+    [sun, sunReflection, light].forEach(el => {
+        el.style.animation = 'none';
+        void el.offsetWidth;
+    });
+
+    sun.style.animation = 'rise 20s linear';
+    sunReflection.style.animation = 'rise-reflection 20s linear';
+    light.style.animation = 'light 20s linear';
+}
+
+function geneticAlgorithm({ precisionRateValue, mutationRate, corDeParada, geracoesMax, populacaoInicial, repetirAte, metodoSelecao }) {
+    let runButton = document.getElementById("run");
+    let simulationButton = document.getElementById("simulation");
+    let statisticButton = document.getElementById("statistic");
+    runButton.style.display = "none";
+    simulationButton.style.display = "flex";
+    statisticButton.style.display = "flex";
+
+    let population = Array.from({ length: populacaoInicial }, () => ({
+        id: fishIdCounter++,
+        color: generateRandomColor()
+    }));
+
     let generation = 1;
+    fitnessStatus.innerHTML = `Taxa de aptidão alcançada: <b>0%</b>/${precisionRateValue}%`;
 
-    function step() {
-        population = population.sort((a, b) => fitness(b, corDeParada) - fitness(a, corDeParada));
-        
-        finish.innerHTML = `Geração atual: <b>${generation}</b>`
-       
-        let newPopulation = [];
-        
-        for (let i = 0; i < populacaoInicial / 2; i++) {
-            let runButton = document.getElementById("run");
-            let simuButton = document.getElementById("simu");
-        
-            runButton.style.display = "none"
-            simuButton.style.display = "flex"
-            let parent1 = select(population, corDeParada, metodoSelecao);
-            let parent2 = select(population, corDeParada, metodoSelecao);
-            let [child1, child2] = crossover(parent1, parent2);
+    async function step() {
+        population = population.sort((a, b) => calculateFitness(b.color, corDeParada) - calculateFitness(a.color, corDeParada));
 
-            newPopulation.push(mutate(child1, mutationRate), mutate(child2, mutationRate));
+        generationLabel.innerHTML = `<p>${generation}</p><span>Geração atual</span>`;
+
+        if (generation < 6) {
+            animationReset();
+        }
+
+        const [selectedParents, selectedIds] = selectParent(population, corDeParada, metodoSelecao);
+
+        await atualizarInterface(population, selectedIds, generation);
+
+        const newPopulation = [];
+
+        for (let i = 0; i < selectedParents.length; i++) {
+            const parent1 = selectedParents[getRandomIndex(selectedParents.length)];
+            const parent2 = selectedParents[getRandomIndex(selectedParents.length)];
+
+            const [childColor1, childColor2] = crossoverColors(parent1, parent2);
+
+            newPopulation.push(
+                mutateColor(childColor1, mutationRate),
+                mutateColor(childColor2, mutationRate)
+            );
         }
 
         population = newPopulation;
-        fitness_pop = fitness(population[0], corDeParada);
-        let fitnessPercentual = parseFloat((fitness_pop * 100).toFixed(1));
 
-        fitness_text.innerHTML=`Taxa de aptidão alcançada: <b>${fitnessPercentual}%</b>/${precisionRateValue}%`
+        const bird = document.getElementById("bird");
+        bird.style.opacity = "0";
 
+        const averageFitness = population.reduce((acc, ind) => acc + calculateFitness(ind.color, corDeParada), 0) / population.length;
+        const fitnessPercent = parseFloat((averageFitness * 100).toFixed(1));
 
-        updateUI(population);
-        atualizarEstatisticas(population,  generation, fitnessPercentual);
-         
-        if (generation >= geracoesMax+1 && repetirAte == "generations") {
-            finish.innerHTML = `Finalizado na geração: <b>${generation}</b>`;
-            return;
-        }
+        fitnessStatus.innerHTML = `Taxa de aptidão alcançada: <b>${fitnessPercent}%</b>/${precisionRateValue}%`;
+        atualizarEstatisticasGeracao(generation, fitnessPercent);
 
-        if (fitness_pop >= precisionRateValue/100) {
-            finish.innerHTML = `Finalizado na geração: <b>${generation}</b>`;
-            
+        if (generation>=1500 || (generation >= geracoesMax + 1 && repetirAte === "generations") || averageFitness >= precisionRateValue / 100) {
+            runButton.style.display = "flex";
             return;
         }
 
         generation++;
-
         requestAnimationFrame(step);
     }
+
     step();
 
 
 }
 
-function clickExecution() {
-    let precisionRateValue = localStorage.getItem("Taxa_Precisao") || 50;
-    let mutationRate = localStorage.getItem("Taxa_Mutacao") || 50;
-    let corDeParada =  localStorage.getItem("Cor_Parada");
-    let geracoesMax = parseInt(localStorage.getItem("Geracao"));
-    let populacaoInicial = parseInt(localStorage.getItem("Populacao_Inicial")) || 10;
-    let repetirAte = localStorage.getItem("Criterio_Parada") || "random";
-    let metodoSelecao = localStorage.getItem("Selecao") || "torneio";
-    if (repetirAte == "generations") {
-        corDeParada = [212, 146, 221]
-    }
-    else if (repetirAte == "color") {
-        corDeParada = corDeParada.split(",").map(Number);
-    }
-    else {
-        const r = Math.floor(Math.random() * 256);
-        const g = Math.floor(Math.random() * 256);
-        const b = Math.floor(Math.random() * 256);
-        corDeParada = [r, g, b]
-    }
-    fishContainer.innerHTML = "";
-    colorList.innerHTML = "";
-    finish.innerHTML = "";
-    color.innerHTML = "";    
-    fitnessChart.data.labels = []; // Limpa os rótulos
-        fitnessChart.data.datasets.forEach((dataset) => {
-            dataset.data = []; // Limpa os dados
-        });
-        fitnessChart.update(); // Atualiza o gráfico
-    geneticAlgorithm({ precisionRateValue,mutationRate, corDeParada, geracoesMax, populacaoInicial, repetirAte, metodoSelecao });
-}
 
+function clickExecution() {
+    const precisionRateValue = localStorage.getItem("Taxa_Precisao") || 50;
+    const mutationRate = localStorage.getItem("Taxa_Mutacao") || 50;
+    const corDeParada = [107, 145, 190];
+    const geracoesMax = parseInt(localStorage.getItem("Geracao"));
+    const populacaoInicial = parseInt(localStorage.getItem("Populacao_Inicial")) || 10;
+    const repetirAte = localStorage.getItem("Criterio_Parada") || "random";
+    const metodoSelecao = localStorage.getItem("Selecao") || "torneio";
+
+    fishContainer.innerHTML = "";
+    fitnessChart.data.labels = [];
+    fitnessChart.data.datasets.forEach(dataset => dataset.data = []);
+    fitnessChart.update();
+
+    geneticAlgorithm({
+        precisionRateValue,
+        mutationRate,
+        corDeParada,
+        geracoesMax,
+        populacaoInicial,
+        repetirAte,
+        metodoSelecao
+    });
+}

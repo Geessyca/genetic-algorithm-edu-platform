@@ -18,12 +18,12 @@ loadHTML('modais-container', `
         </div>
         <div class="config-item">
             <label for="mutationRate">Taxa de Mutação (%)</label>
-            <input type="range" id="mutationRate" name="mutationRate" min="10" max="70" value="30">
-            <span id="mutationRateValue">30%</span>
+            <input type="range" id="mutationRate" name="mutationRate" min="10" max="70" value="50">
+            <span id="mutationRateValue">50%</span>
         </div>
         <div class="config-item">
             <label for="populationSize">Tamanho da População</label>
-            <input type="number" id="populationSize" name="populationSize" min="10" max="100" value="50">
+            <input type="number" id="populationSize" name="populationSize" min="10" max="100" value="10">
         </div>
         <div class="config-item">
             <label style="display: flex;" for="selectionMethod">Método de Seleção

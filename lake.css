@@ -339,11 +339,14 @@
   right: 0;
   margin: auto;
   top: calc(30% + 1vmin);
-  animation: light 20s infinite;
   opacity: 0;
   transform: scaleX(0.1) translate3d(0%, 0, 0);
   border-radius: 0.25vh;
   filter: blur(1px);
+}
+
+.light.active {
+  animation: light 20s linear;
 }
 
 @-webkit-keyframes light {
