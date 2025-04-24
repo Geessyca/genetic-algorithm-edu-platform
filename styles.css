@@ -511,3 +511,22 @@ div#generation_current {
     font-weight: 600;
   }
 }
+.flags{
+  display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+.flag-button {
+  background: none;
+    border: none;
+    cursor: pointer;
+    margin: 0 7px;
+    padding: 0;
+}
+.flag-button:hover{
+  background: none;
+}
+.flag-button img {
+  width: 25px;
+  height: 15px;
+}
