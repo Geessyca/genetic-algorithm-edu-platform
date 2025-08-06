@@ -1,7 +1,9 @@
+/**
+ * Renders the configuration and help modals in Portuguese.
+ */
 loadHTML('modais-container', `
-<!-- Modal de Configurações -->
-<div id="configModalBG" class="modal" onclick="closeModalAll()"></div>
-
+<!-- Configuration Modal -->
+<div id="configModalBG" class="modal" onclick="closeAllModals()"></div>
 <div id="configModal" style="display:none">
     <div class="modal-content">
         <span class="close-btn" onclick="closeModal('configModal')"><svg class="w-6 h-6 text-gray-800 dark:text-white"
@@ -111,7 +113,7 @@ loadHTML('modais-container', `
     </div>
 </div>
 
-<!-- Modal de Ajuda -->
+<!-- Help Modal -->
 <div id="helpModal" style="display:none">
     <div class="modal-content">
         <span class="close-btn" onclick="closeModal('helpModal')"><svg class="w-6 h-6 text-gray-800 dark:text-white"
@@ -121,23 +123,22 @@ loadHTML('modais-container', `
                     d="M6 18 17.94 6M18 18 6.06 6" />
             </svg></span>
         <h2>Ajuda</h2>
-        <div class="help" onclick="(allClick('help1'))">
+        <div class="help" onclick="(toggleModal('help1'))">
         <p >O que são algoritmos genéticos?</p>
         <div id="help1" class="help_item">Explicação geral</div>
         </div>
-        <div class="help" onclick="(allClick('help2'))">
+        <div class="help" onclick="(toggleModal('help2'))">
         <p>O que ocorre em cada etapa do algoritmo?</p>
         <div id="help2" class="help_item">Explicação por topico</div>
         </div>
-        <div class="help" onclick="(allClick('help3'))">
+        <div class="help" onclick="(toggleModal('help3'))">
         <p>O que são as configurações?</p>
         <div id="help3" class="help_item">Explicar cada configurações</div>
         </div>
-        <div class="help" onclick="(allClick('help4'))">
+        <div class="help" onclick="(toggleModal('help4'))">
         <p>Como usar a plataforma?</p>
         <div id="help4" class="help_item">Explicar como usar</div>
         </div>
-        
     </div>
 </div>
 `);

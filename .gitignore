@@ -1,0 +1,39 @@
+# Node modules and dependencies
+node_modules/
+
+# Build output
+/dist/
+/build/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# IDE and editor folders
+.vscode/
+.idea/
+
+# Environment files
+.env
+.env.*
+
+# Coverage and test output
+coverage/
+*.lcov
+
+# Misc
+*.swp
+*.swo
+
+# Web project files
+*.bak
+
+# Ignore compiled JS/CSS (if using preprocessors)
+*.min.js
+*.min.css
+
+# Ignore generated files
+*.tmp

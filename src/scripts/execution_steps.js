@@ -2,7 +2,7 @@ const stepContainer = document.getElementById("steps-container");
 const individual = document.getElementById("individual");
 const rouletteCanvas = document.getElementById("rouletteCanvas");
 const selection = document.getElementById("selection");
-const itens = document.getElementById("itens");
+const items = document.getElementById("itens");
 const restartButton = document.getElementById("restart");
 const step1Button = document.getElementById("step1");
 const step2Button = document.getElementById("step2");
@@ -12,12 +12,38 @@ const step5Button = document.getElementById("step5");
 const selection1Button = document.getElementById("selection1");
 const selection2Button = document.getElementById("selection2");
 const targetColor = [107, 145, 190];
-var fishIdCounterByStep = 0;
-var population = []
-var selectionMethod = ""
-var childs = []
-var mutations = []
-var inRun = false
+let fishIdCounterByStep = 0;
+let population = [];
+let selectionMethod = "";
+let children = [];
+let mutations = [];
+let isRunning = false;
+
+/**
+ * Language dictionary for step UI texts.
+ */
+const LANG_DICT_STEPS = {
+    pt: {
+        stoppingCriterion: "Critério de parada alcançado!"
+    },
+    en: {
+        stoppingCriterion: "Stopping criterion reached!"
+    }
+};
+/**
+ * Returns translated string for step key.
+ * @param {string} key
+ * @returns {string}
+ */
+const tSteps = (key) => LANG_DICT_STEPS[currentLang][key] || key;
+
+// Listen for language change
+window.addEventListener('storage', (e) => {
+    if (e.key === 'lang') {
+        currentLang = e.newValue || 'pt';
+    }
+});
+
 document.addEventListener("DOMContentLoaded", function () {
     restartButton.classList.add("disabled")
     step2Button.classList.add("disabled")
@@ -30,7 +56,7 @@ document.addEventListener("DOMContentLoaded", function () {
         selectionMethod = ""
         childs = []
         mutations = []
-        inRun = false
+        isRunning = false
         individual.innerHTML = ""
         itens.innerHTML = "";
         step1Button.classList.remove("disabled")
@@ -39,6 +65,7 @@ document.addEventListener("DOMContentLoaded", function () {
         step4Button.classList.add("disabled")
         step5Button.classList.add("disabled")
         selection.style.display = "none"
+        rouletteCanvas.style.display = "none"
         selection1Button.classList.remove("disabled")
         selection2Button.classList.remove("disabled")
     });
@@ -52,7 +79,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
     step2Button.addEventListener("click", function () {
         if (!step2Button.classList.contains("disabled")) {
-            if (inRun) {
+            if (isRunning) {
                 step1WithPopulation();
             }
             selection.style.display = ""
@@ -108,7 +135,7 @@ document.addEventListener("DOMContentLoaded", function () {
             step5();
             step5Button.classList.add("disabled")
             step2Button.classList.remove("disabled")
-            inRun = true
+            isRunning = true
         }
     });
 });
@@ -143,7 +170,6 @@ function step1() {
         circle.style.backgroundColor = `rgb(${color[0]},${color[1]},${color[2]})`;
         individual.appendChild(circle);
     }
-
     population = Array.from({ length: 10 }, () => {
         let id = fishIdCounterByStep++;
         let color = generateRandomColor();
@@ -157,7 +183,6 @@ function step1() {
 
 async function step2() {
     itens.innerHTML = "";
-
     const [selectedParents, selectedIds] = await selectParentAnimate(population, targetColor, selectionMethod);
     population.forEach(ind => {
         if (!selectedIds.includes(ind.id)) {
@@ -178,12 +203,10 @@ function step3() {
         let groupDiv = document.createElement("div");
         groupDiv.className = "groupDiv";
         individual.forEach((ind, index) => {
-
             if (index == 2) {
                 let line = document.createElement("div");
                 line.className = "line";
                 groupDiv.appendChild(line);
-
             }
             else {
                 let circle = document.createElement("div");
@@ -199,17 +222,13 @@ function step3() {
                         circle.classList.add("invert");
                     }
                 }
-
                 circle.id = ind.id;
                 circle.style.backgroundColor = `rgb(${ind.color[0]}, ${ind.color[1]}, ${ind.color[2]})`;
                 groupDiv.appendChild(circle);
             }
-
         });
-
         itens.appendChild(groupDiv);
     }
-
     const newPopulation = []
     for (let i = 0; i < population.length; i++) {
         const parent1 = population[getRandomIndex(population.length)];
@@ -226,9 +245,7 @@ function step3() {
         );
     }
     population = newPopulation;
-
 }
-
 
 function step4() {
     individual.innerHTML = ""
@@ -236,26 +253,19 @@ function step4() {
     function addIndividual(id, color) {
         let containerId = `container-${id}`;
         let container = document.getElementById(containerId);
-
-
         if (!container) {
             container = document.createElement("div");
             container.id = containerId;
             container.className = "color-group";
             itens.appendChild(container);
         }
-
-
         let circle = document.createElement("div");
         circle.className = "color-circle";
         circle.style.backgroundColor = `rgb(${color[0]},${color[1]},${color[2]})`;
-
-
         container.appendChild(circle);
     }
     childs.forEach(item => addIndividual(item.id, item.color));
     mutations.forEach(item => addIndividual(item.id, item.color));
-
 }
 
 function step5() {
@@ -271,7 +281,6 @@ function step5() {
         individual.innerText = `${fitnessPercent} %`;
         itens.appendChild(individual);
     }
-
     population.forEach(item => addIndividual(item.color));
 }
 function step6(averageFitness) {
@@ -281,7 +290,7 @@ function step6(averageFitness) {
         step3Button.classList.add("disabled")
         step4Button.classList.add("disabled")
         step5Button.classList.add("disabled")
-        itens.innerHTML = itens.innerHTML + "<div class='step_end'> Critério de parada alcançado! </div>"
-        inRun = false
+        itens.innerHTML = itens.innerHTML + `<div class='step_end'>${tSteps('stoppingCriterion')}</div>`
+        isRunning = false
     }
 }

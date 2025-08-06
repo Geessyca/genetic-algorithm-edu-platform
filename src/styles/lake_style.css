@@ -1,3 +1,4 @@
+/*CODE BASED: https://codepen.io/pehaa/pen/yLVeLNg*/
 :root {
   --v1: #91b5c6;
   --v2: #5ba5d6;
@@ -7,10 +8,6 @@
   --s1: #98d0fe;
   --s2: #1375c5;
   --cloud: #f7fe98;
-}
-*,
-*:before,
-*:after {
 }
 .landscape:after,
 .landscape:before,

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="dynamic-title">AGofIF: Algoritmo Genético Interativo</title>
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="AGofIF">
+    <meta property="og:description" content="An Interactive Educational Platform for Introducing Genetic Algorithm Concepts">
+    <meta property="og:image" content="./assets/favicon.ico">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="">
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="AGofIF">
+    <meta name="twitter:description" content="An Interactive Educational Platform for Introducing Genetic Algorithm Concepts">
+    <meta name="twitter:image" content="./assets/favicon.ico">
+    <link rel="icon" href="./assets/favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="./styles/global_styles.css">
+    <link rel="stylesheet" href="./styles/lake_style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Scripts do projeto -->
+    <script src="./scripts/genetic_algorithm.js" defer></script>
+    <script src="./scripts/execution_steps.js" defer></script>
+    <script src="./scripts/helpers.js" defer></script>
+    <script src="./scripts/modal_manager.js" defer></script>
+    <script>
+    const DESCRIPTIONS = {
+        pt: "Uma plataforma educacional interativa para introdução aos conceitos de Algoritmo Genético",
+        en: "An Interactive Educational Platform for Introducing Genetic Algorithm Concepts"
+    };
+    const lang = localStorage.getItem('lang') || (navigator.language ? navigator.language.slice(0,2) : 'pt');
+    document.addEventListener('DOMContentLoaded', function() {
+        const ogDesc = document.querySelector('meta[property="og:description"]');
+        const twDesc = document.querySelector('meta[name="twitter:description"]');
+        const ogTitle = document.querySelector('meta[property="og:title"]');
+        const twTitle = document.querySelector('meta[name="twitter:title"]');
+        const TITLES = {
+            pt: "AGofIF: Algoritmo Genético Interativo",
+            en: "AGofIF: Interactive Genetic Algorithm"
+        };
+        if (ogDesc) ogDesc.setAttribute('content', DESCRIPTIONS[lang] || DESCRIPTIONS['en']);
+        if (twDesc) twDesc.setAttribute('content', DESCRIPTIONS[lang] || DESCRIPTIONS['en']);
+        if (ogTitle) ogTitle.setAttribute('content', TITLES[lang] || TITLES['en']);
+        if (twTitle) twTitle.setAttribute('content', TITLES[lang] || TITLES['en']);
+        document.title = TITLES[lang] || TITLES['en'];
+    });
+    const LANG_DICT_HTML = {
+        pt: {
+            run: "Executar",
+            simulation: "Simulação",
+            statistic: "Estatísticas",
+            step: "Etapas",
+            statisticTitle: "Estatísticas da Simulação",
+            bestFitnessHistory: "Histórico do Melhor Aptidão",
+            stepTitle: "Etapas",
+            step1: "Iniciar População",
+            step2: "Seleção",
+            step3: "Cruzamento",
+            step4: "Mutação",
+            step5: "Cálculo da aptidão",
+            restart: "Reiniciar",
+            selection1: "Torneio",
+            selection2: "Roleta"
+        },
+        en: {
+            run: "Run",
+            simulation: "Simulation",
+            statistic: "Statistics",
+            step: "Steps",
+            statisticTitle: "Simulation Statistics",
+            bestFitnessHistory: "Best Fitness History",
+            stepTitle: "Steps",
+            step1: "Initialize Population",
+            step2: "Selection",
+            step3: "Crossover",
+            step4: "Mutation",
+            step5: "Fitness Calculation",
+            restart: "Restart",
+            selection1: "Tournament",
+            selection2: "Roulette"
+        }
+    };
+    function tHtml(key) {
+        const lang = localStorage.getItem('lang') || 'pt';
+        return LANG_DICT_HTML[lang][key] || key;
+    }
+    function updateButtonTextWithIcon(id, text) {
+        const btn = document.getElementById(id);
+        if (btn) {
+            const svg = btn.querySelector('svg');
+            if (svg) {
+                // Remove all text nodes after the svg
+                while (svg.nextSibling) {
+                    svg.parentNode.removeChild(svg.nextSibling);
+                }
+                svg.insertAdjacentText('afterend', text);
+            } else {
+                btn.innerText = text;
+            }
+        }
+    }
+    function updateTexts() {
+        updateButtonTextWithIcon('run', tHtml('run'));
+        updateButtonTextWithIcon('simulation', tHtml('simulation'));
+        updateButtonTextWithIcon('statistic', tHtml('statistic'));
+        updateButtonTextWithIcon('step', tHtml('step'));
+        // Configurações/Settings button
+        const configBtn = document.querySelector("button.run#statistic[onclick]");
+        if (configBtn) {
+            const svg = configBtn.querySelector('svg');
+            if (svg) {
+                while (svg.nextSibling) {
+                    svg.parentNode.removeChild(svg.nextSibling);
+                }
+                svg.insertAdjacentText('afterend', (localStorage.getItem('lang') === 'en' ? 'Settings' : 'Configurações'));
+            } else {
+                configBtn.innerText = (localStorage.getItem('lang') === 'en' ? 'Settings' : 'Configurações');
+            }
+        }
+        const statTitle = document.querySelector('#statistic-container h2');
+        if (statTitle) statTitle.innerText = tHtml('statisticTitle');
+        const bestFitness = document.querySelectorAll('.statistic_title');
+        if (bestFitness.length > 1) bestFitness[1].innerText = tHtml('bestFitnessHistory');
+        const stepTitle = document.querySelector('#step-container h2');
+        if (stepTitle) stepTitle.innerText = tHtml('stepTitle');
+        updateButtonTextWithIcon('step1', tHtml('step1'));
+        updateButtonTextWithIcon('step2', tHtml('step2'));
+        updateButtonTextWithIcon('step3', tHtml('step3'));
+        updateButtonTextWithIcon('step4', tHtml('step4'));
+        updateButtonTextWithIcon('step5', tHtml('step5'));
+        updateButtonTextWithIcon('restart', tHtml('restart'));
+        document.getElementById('selection1').innerText = tHtml('selection1');
+        document.getElementById('selection2').innerText = tHtml('selection2');
+    }
+    window.addEventListener('DOMContentLoaded', updateTexts);
+    window.addEventListener('storage', function(e) {
+        if (e.key === 'lang') {
+            updateTexts();
+        }
+    });
+    </script>
+</head>
+    <body>
+    <div id="modais-container" aria-live="polite"></div>
+    <nav class="buttons" aria-label="Ações principais">
+        <div style="display: flex; gap: 0.5rem;">
+            <button class="run" id="run" type="button" aria-label="Executar">
+                <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 18V6l8 6-8 6Z" />
+                </svg>
+                Executar
+            </button>
+            <button class="run" id="simulation" type="button" style="display: none;" aria-label="Simulação">
+                <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m8 8-4 4 4 4m8 0 4-4-4-4m-2-3-4 14" />
+                </svg>
+                Simulação
+            </button>
+            <button class="run" id="statistic" type="button" style="display: none;" aria-label="Estatísticas">
+                <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v15a1 1 0 0 0 1 1h15M8 16l2.5-5.5 3 3L17.273 7 20 9.667" />
+                </svg>
+                Estatísticas
+            </button>
+            <button class="run" id="step" type="button" aria-label="Etapas">
+                <svg viewBox="0 0 16 16" width="16" height="16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                    <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                    <g id="SVGRepo_iconCarrier">
+                        <path d="M3 1H1V3H3V1Z" fill="#fff"></path>
+                        <path d="M3 5H1V7H3V5Z" fill="#fff"></path>
+                        <path d="M1 9H3V11H1V9Z" fill="#fff"></path>
+                        <path d="M3 13H1V15H3V13Z" fill="#fff"></path>
+                        <path d="M15 1H5V3H15V1Z" fill="#fff"></path>
+                        <path d="M15 5H5V7H15V5Z" fill="#fff"></path>
+                        <path d="M5 9H15V11H5V9Z" fill="#fff"></path>
+                        <path d="M15 13H5V15H15V13Z" fill="#fff"></path>
+                    </g>
+                </svg>
+                Etapas
+            </button>
+        </div>
+        <div id="generation_current" aria-live="polite"></div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <div class="flags" role="group" aria-label="Seleção de idioma">
+                <button class="flag-button" type="button" onclick="localStorage.setItem('lang','pt'); window.location.reload()" aria-label="Português">
+                    <img src="https://flagcdn.com/w40/br.png" alt="Bandeira do Brasil">
+                </button>
+                <button class="flag-button" type="button" onclick="localStorage.setItem('lang','en'); window.location.reload()" aria-label="English">
+                    <img src="https://flagcdn.com/w40/us.png" alt="Bandeira dos Estados Unidos">
+                </button>
+            </div>
+            <button class="run" id="statistic" type="button" onclick="openModal('configModal')" aria-label="Configurações">
+                <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13v-2a1 1 0 0 0-1-1h-.757l-.707-1.707.535-.536a1 1 0 0 0 0-1.414l-1.414-1.414a1 1 0 0 0-1.414 0l-.536.535L14 4.757V4a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1v.757l-1.707.707-.536-.535a1 1 0 0 0-1.414 0L4.929 6.343a1 1 0 0 0 0 1.414l.536.536L4.757 10H4a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h.757l.707 1.707-.535.536a1 1 0 0 0 0 1.414l1.414 1.414a1 1 0 0 0 1.414 0l.536-.535 1.707.707V20a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-.757l1.707-.708.536.536a1 1 0 0 0 1.414 0l1.414-1.414a1 1 0 0 0 0-1.414l-.535-.536.707-1.707H20a1 1 0 0 0 1-1Z" />
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                </svg>
+                Configurações
+            </button>
+        </div>
+    </nav>
+    <main>
+    <section class="lake" id="lake-container" aria-label="Paisagem do lago">
+        <div id="lake">
+            <div class="landscape">
+                <div class="mountain"></div>
+                <div class="mountain mountain-2"></div>
+                <div class="mountain mountain-3"></div>
+                <div class="sun-container sun-container-1"></div>
+                <div class="sun-container">
+                    <div class="sun"></div>
+                </div>
+                <div class="cloud"></div>
+                <div class="cloud cloud-1"></div>
+                <div class="sun-container sun-container-reflection">
+                    <div class="sun"></div>
+                </div>
+                <div class="light"></div>
+                <div class="light light-1"></div>
+                <div class="light light-2"></div>
+                <div class="light light-3"></div>
+                <div class="light light-4"></div>
+                <div class="light light-5"></div>
+                <div class="light light-6"></div>
+                <div class="light light-7"></div>
+                <div class="water">
+                    <div id="fish-container"></div>
+                </div>
+                <div class="splash"></div>
+                <div class="splash delay-1"></div>
+                <div class="splash delay-2"></div>
+                <div class="splash splash-4 delay-2"></div>
+                <div class="splash splash-4 delay-3"></div>
+                <div class="splash splash-4 delay-4"></div>
+                <div class="splash splash-stone delay-3"></div>
+                <div class="splash splash-stone splash-4"></div>
+                <div class="splash splash-stone splash-5"></div>
+                <div class="lotus lotus-1"></div>
+                <div class="lotus lotus-2"></div>
+                <div class="lotus lotus-3"></div>
+                <div class="front">
+                    <div class="stone"></div>
+                    <div class="grass"></div>
+                    <div class="grass grass-1"></div>
+                    <div class="grass grass-2"></div>
+                    <div class="reed"></div>
+                    <div class="reed reed-1"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </section>
+    <section id="statistic-container" style="display: none;" aria-label="Estatísticas">
+        <h2>Estatísticas da Simulação</h2>
+        <p class="statistic_title" id="fitness_current"></p>
+        <p class="statistic_title">Histórico do Melhor Aptidão</p>
+        <canvas id="fitness_current-chart" aria-label="Gráfico de aptidão"></canvas>
+    </section>
+    <section id="step-container" style="display: none;" aria-label="Etapas">
+        <h2>Etapas</h2>
+        <div>
+            <div id="steps-buttons" role="group" aria-label="Botões de etapas">
+                <button id="step1" type="button">Iniciar População</button>
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                    <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                    <g id="SVGRepo_iconCarrier">
+                        <path d="M12 4V20M12 20L8 16M12 20L16 16" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </g>
+                </svg>
+                <button id="step2" type="button">Seleção</button>
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                    <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                    <g id="SVGRepo_iconCarrier">
+                        <path d="M12 4V20M12 20L8 16M12 20L16 16" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </g>
+                </svg>
+                <button id="step3" type="button">Cruzamento</button>
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                    <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                    <g id="SVGRepo_iconCarrier">
+                        <path d="M12 4V20M12 20L8 16M12 20L16 16" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </g>
+                </svg>
+                <button id="step4" type="button">Mutação</button>
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                    <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                    <g id="SVGRepo_iconCarrier">
+                        <path d="M12 4V20M12 20L8 16M12 20L16 16" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </g>
+                </svg>
+                <button id="step5" type="button">Cálculo da aptidão</button>
+                <button id="restart" type="button">Reiniciar</button>
+            </div>
+            <div id="steps-container">
+                <div id="individual" aria-live="polite"></div>
+                <div id="selection" style="display: none;" role="group" aria-label="Seleção de método">
+                    <button id="selection1" type="button">Torneio</button>
+                    <button id="selection2" type="button">Roleta</button>
+                </div>
+                <canvas id="rouletteCanvas" width="500" height="350" aria-label="Roleta de seleção"></canvas>
+                <div id="itens"></div>
+            </div>
+        </div>
+    </section>
+    </main>
+</body>
+</html>
