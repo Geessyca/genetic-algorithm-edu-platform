@@ -5,10 +5,10 @@ AGofIF é uma plataforma interativa baseada na web, desenvolvida para facilitar 
 
 ## Estrutura do Projeto
 - `src/`
-  - `index.html`: Ponto de entrada principal da plataforma.
   - `assets/`: Imagens e ícones.
   - `scripts/`: Arquivos JavaScript para lógica da simulação, utilitários, gerenciamento de modais e etapas de execução.
   - `styles/`: Arquivos CSS para estilos globais e específicos da simulação.
+- `index.html`: Ponto de entrada principal da plataforma.
 - `components/`: Módulos JavaScript adicionais para diálogos modais e componentes de interface.
 - `README.md`, `README_ptbr.md`: Documentação em inglês e português.
 
@@ -19,7 +19,7 @@ AGofIF é uma plataforma interativa baseada na web, desenvolvida para facilitar 
   git clone https://github.com/Geessyca/genetic-algorithm-edu-platform.git
   ```
 - **Uso Local:**
-  Abra o arquivo `src/index.html` em seu navegador. Não é necessário instalar dependências.
+  Abra o arquivo `index.html` em seu navegador. Não é necessário instalar dependências.
 
 ## Resultados e Divulgação
 Este projeto foi aceito como **pôster no IHC 2025**. 
