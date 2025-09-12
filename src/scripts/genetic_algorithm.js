@@ -298,7 +298,7 @@ const birdFlightDelay = 500;
 const fishRemovalDelay = 1000;
 
 async function atualizarInterface(population, selectedIds, generation) {
-    fishContainer.innerHTML = '<img id="bird" src="./assets/bird.gif"/>';
+    fishContainer.innerHTML = '<img id="bird" src="https://github.com/Geessyca/genetic-algorithm-edu-platform/blob/main/src/assets/bird.gif"/>';
     population.forEach(individual => {
         const fish = document.createElement("div");
         fish.className = "fish";
